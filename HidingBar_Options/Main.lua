@@ -41,6 +41,17 @@ main.colorButtonBackdrop = {
 }
 
 
+main.darkPanelBackdrop = {
+	bgFile = "Interface/ChatFrame/ChatFrameBackground",
+	edgeFile = "Interface/Buttons/UI-SliderBar-Border",
+	tile = true,
+	tileEdge = true,
+	tileSize = 8 * scale,
+	edgeSize = 8 * scale,
+	insets = {left = 3, right = 3, top = 6, bottom = 6},
+}
+
+
 local function toHex(tbl)
 	local str = ("%02x"):format(tbl[1] * 255)
 	for i = 2, #tbl do
@@ -1481,6 +1492,8 @@ local function updateBarTypePosition()
 	main.coordX:SetEnabled(main.bConfig.barTypePosition == 1)
 	main.coordY:SetEnabled(main.bConfig.barTypePosition == 1)
 	main.likeMB.check:SetShown(main.bConfig.barTypePosition == 2)
+	main.ombIcon:SetEnabled(main.bConfig.barTypePosition == 2)
+	main.ombIconCustom:SetEnabled(main.bConfig.barTypePosition == 2)
 	main.ombShowToCombobox:SetEnabled(main.bConfig.barTypePosition == 2)
 	main.ombSize:setEnabled(main.bConfig.barTypePosition == 2)
 	main.distanceFromButtonToBar:setEnabled(main.bConfig.barTypePosition == 2)
@@ -1624,9 +1637,64 @@ main.likeMB:SetScript("OnClick", function()
 	main:hidingBarUpdate()
 end)
 
+-- MINIMAP BUTTON ICON
+main.ombIcon = CreateFrame("BUTTON", nil, main.positionBarPanel, "HidingBarAddonIconButtonTemplate")
+main.ombIcon:SetPoint("TOPLEFT", main.likeMB, "BOTTOMLEFT", 24, -3)
+main.ombIcon.icon:SetTexture(hb.ombDefIcon)
+main.ombIcon:SetScript("OnClick", function(btn)
+	main.iconData:init(btn, function()
+		local icon = btn.icon:GetTexture()
+		if icon == 450906 then icon = nil end
+		main.bConfig.omb.icon = icon
+		main.ombIconCustom:SetText(icon or "")
+		main.barFrame:setBarTypePosition()
+		main:hidingBarUpdate()
+	end)
+	PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+end)
+
+-- MINIMAP BUTTON ICON CUSTOM TEXT
+main.ombIconCustomText = main.positionBarPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+main.ombIconCustomText:SetPoint("BOTTOMLEFT", main.ombIcon, "BOTTOMRIGHT", 10, 4)
+main.ombIconCustomText:SetText(L["Icon"])
+
+-- MINIMAP BUTTON ICON CUSTOM
+main.ombIconCustom = CreateFrame("EditBox", nil, main.positionBarPanel, "InputBoxTemplate")
+main.ombIconCustom:SetPoint("LEFT", main.ombIconCustomText, "RIGHT", 5, 0)
+main.ombIconCustom:SetPoint("RIGHT", -10 , 0)
+main.ombIconCustom:SetHeight(20)
+main.ombIconCustom:SetAutoFocus(false)
+main.ombIconCustom.bgText = main.ombIconCustom:CreateFontString(nil, "BACKGROUND", "GameFontDisable")
+main.ombIconCustom.bgText:SetPoint("LEFT", 0, 0)
+main.ombIconCustom.bgText:SetText(hb.ombDefIcon)
+main.ombIconCustom:SetScript("OnEscapePressed", EditBox_ClearFocus)
+main.ombIconCustom:SetScript("OnEnterPressed", EditBox_ClearFocus)
+main.ombIconCustom:SetScript("OnEditFocusLost", function(editBox)
+	local text = editBox:GetText():trim()
+	editBox:SetText(text)
+	if text == "" then
+		main.bConfig.omb.icon = nil
+	else
+		main.bConfig.omb.icon = text
+	end
+	main.ombIcon.icon:SetTexture(main.bConfig.omb.icon or hb.ombDefIcon)
+	main.barFrame:setBarTypePosition()
+	main:hidingBarUpdate()
+end)
+main.ombIconCustom:SetScript("OnTextChanged", function(editBox)
+	local text = editBox:GetText()
+	editBox.bgText:SetShown(text == "")
+end)
+main.ombIconCustom:SetScript("OnDisable", function(editBox)
+	editBox:SetTextColor(GRAY_FONT_COLOR:GetRGB())
+end)
+main.ombIconCustom:SetScript("OnEnable", function(editBox)
+	editBox:SetTextColor(HIGHLIGHT_FONT_COLOR:GetRGB())
+end)
+
 -- MINIMAP BUTTON SHOW TO
 main.ombShowToCombobox = lsfdd:CreateButton(main.positionBarPanel, 120)
-main.ombShowToCombobox:SetPoint("TOPLEFT", main.likeMB, "BOTTOMLEFT", 23, -3)
+main.ombShowToCombobox:SetPoint("TOPLEFT", main.ombIcon, "BOTTOMLEFT", -1, -10)
 main.ombShowToCombobox.texts = {
 	right = L["Show to left"],
 	left = L["Show to right"],
@@ -2186,6 +2254,8 @@ function main:setBar(bar)
 
 		self.hideToCombobox:ddSetSelectedValue(self.bConfig.anchor)
 		self.hideToCombobox:ddSetSelectedText(self.hideToCombobox.texts[self.bConfig.anchor])
+		self.ombIcon.icon:SetTexture(self.bConfig.omb.icon or hb.ombDefIcon)
+		self.ombIconCustom:SetText(self.bConfig.omb.icon or "")
 		self.ombShowToCombobox:ddSetSelectedValue(self.bConfig.omb.anchor)
 		self.ombShowToCombobox:ddSetSelectedText(self.ombShowToCombobox.texts[self.bConfig.omb.anchor])
 		self.ombSize:setValue(self.bConfig.omb.size)
